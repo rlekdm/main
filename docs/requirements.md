@@ -5,14 +5,49 @@
 ## 전체 구조
 
 ```text
-code
-├── backend
-│   └── src/main
-│       ├── java/com/used/service
-│       └── resources
-├── frontend
-│   └── src
+kdtproject
+├── README.md
+├── code
+│   ├── backend
+│   │   └── src/main
+│   │       ├── java/com/used/service
+│   │       │   ├── config
+│   │       │   ├── controller
+│   │       │   ├── service
+│   │       │   ├── repository
+│   │       │   ├── dto
+│   │       │   ├── entity
+│   │       │   ├── scheduler
+│   │       │   ├── notification
+│   │       │   ├── chatbot
+│   │       │   └── exception
+│   │       ├── python
+│   │       │   ├── crawling
+│   │       │   ├── preprocessing
+│   │       │   └── requirements.txt
+│   │       └── resources
+│   └── frontend
+│       └── Hama
+│           ├── public
+│           ├── src
+│           │   ├── components
+│           │   ├── data
+│           │   ├── types
+│           │   ├── App.css
+│           │   ├── App.tsx
+│           │   ├── index.css
+│           │   └── main.tsx
+│           ├── package.json
+│           ├── tsconfig.json
+│           └── vite.config.ts
 └── docs
+    ├── project_structure.md
+    ├── requirements.md
+    ├── document_checklist.md
+    ├── api_spec.md
+    ├── db_schema.sql
+    ├── ERD.drawio.png
+    └── 데이터 명세서.xlsx
 ```
 
 ## Backend
@@ -234,178 +269,164 @@ Spring Boot 설정 파일입니다.
 
 ## Frontend
 
-프론트엔드는 Vite + React 기반 사용자 화면 영역입니다. 상품 검색, 상세 조회, 로그인, 마이페이지, 찜 기능 화면을 담당합니다.
+프론트엔드는 `code/frontend/Hama`에 위치한 Vite + React + TypeScript 기반 사용자 화면 영역입니다. 현재는 홈 화면, 검색 패널, 배너, 카테고리, 추천 상품 목록을 중심으로 구성되어 있습니다.
 
-### `frontend/src/api`
+### 프론트엔드 파일 배치 기준
 
-백엔드 또는 Supabase와 통신하는 API 모듈을 작성합니다.
+프론트엔드 코드는 `frontend/Hama` 앱 내부에 작성합니다. `frontend` 바로 아래에 화면 코드를 직접 두지 않고, 실제 앱 코드는 `frontend/Hama/src` 아래에 둡니다.
 
-들어갈 수 있는 파일 예시:
+기본 원칙:
 
-- `axios.js`: Axios 기본 URL, 공통 헤더, 인터셉터 설정
-- `userApi.js`: 회원가입, 로그인, 회원 정보 API
-- `itemApi.js`: 상품 목록, 상품 검색, 상품 상세 API
-- `wishApi.js`: 찜 등록, 찜 취소, 찜 목록 API
-- `recommendationApi.js`: 추천 상품 API
+- 앱 실행 진입점은 `frontend/Hama/src/main.tsx`에 둡니다.
+- 앱 최상위 화면 조합은 `frontend/Hama/src/App.tsx`에 둡니다.
+- 여러 화면에서 재사용하거나 홈 화면을 구성하는 UI 조각은 `frontend/Hama/src/components`에 둡니다.
+- 카테고리, 상품, 최근 검색어 같은 임시 화면 데이터는 `frontend/Hama/src/data`에 둡니다.
+- 컴포넌트와 데이터에서 공유하는 TypeScript 타입은 `frontend/Hama/src/types`에 둡니다.
+- 전역 스타일은 `frontend/Hama/src/index.css`, 앱 단위 스타일은 `frontend/Hama/src/App.css`에 둡니다.
+- 로고, 배너, 아이콘 같은 정적 파일은 `frontend/Hama/public`에 둡니다.
 
-작성 기준:
+헷갈리기 쉬운 위치:
 
-- 화면 컴포넌트에서 직접 `fetch` 또는 `axios`를 반복 작성하지 않도록 API 호출을 모읍니다.
-- 토큰이 필요한 요청은 공통 설정에서 처리합니다.
+- `frontend/Hama/src/App.tsx`: 맞는 위치입니다. 앱 최상위 컴포넌트입니다.
+- `frontend/Hama/src/components/Header.tsx`: 맞는 위치입니다. 홈 화면에서 재사용 가능한 UI 컴포넌트입니다.
+- `frontend/Hama/src/data/catalog.ts`: 맞는 위치입니다. 카테고리/상품/최근 검색어 데이터를 관리합니다.
+- `frontend/Hama/src/types/catalog.ts`: 맞는 위치입니다. 카탈로그 관련 타입을 정의합니다.
+- `frontend/src/App.tsx`: 현재 구조에서는 잘못된 위치입니다. 앱은 `Hama` 폴더 안에 있습니다.
+- `frontend/App.tsx`: 잘못된 위치입니다. `src` 밖에 화면 코드를 두지 않습니다.
 
-### `frontend/src/assets`
+현재 구조:
 
-이미지, 로고, 아이콘, 폰트 등 정적 파일을 저장합니다.
+```text
+frontend/Hama
+├── public
+│   ├── favicon.svg
+│   ├── hamalogo.png
+│   ├── hama_lowban1.jpg
+│   └── icons.svg
+├── src
+│   ├── components
+│   │   ├── CategoryGrid.tsx
+│   │   ├── Footer.tsx
+│   │   ├── Header.tsx
+│   │   ├── HeroBanner.tsx
+│   │   ├── ProductGrid.tsx
+│   │   └── SearchPanel.tsx
+│   ├── data
+│   │   └── catalog.ts
+│   ├── types
+│   │   └── catalog.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
 
-들어갈 수 있는 파일 예시:
+새 파일을 만들 때 확인 순서:
 
-- 로고 이미지
-- 기본 상품 이미지
-- 아이콘 이미지
-- 폰트 파일
+1. 화면을 구성하는 UI 컴포넌트인가?
+   맞다면 `frontend/Hama/src/components`에 둡니다. 예: `Header.tsx`, `ProductGrid.tsx`
+2. 화면에 표시할 임시 데이터나 목 데이터인가?
+   맞다면 `frontend/Hama/src/data`에 둡니다. 예: `catalog.ts`
+3. 여러 파일에서 공유하는 타입인가?
+   맞다면 `frontend/Hama/src/types`에 둡니다. 예: `catalog.ts`
+4. 앱 전체 또는 특정 앱 화면 스타일인가?
+   전역 스타일은 `index.css`, 앱 단위 스타일은 `App.css`에 둡니다.
+5. 이미지, 로고, 아이콘 같은 정적 파일인가?
+   맞다면 `frontend/Hama/public`에 둡니다.
 
-작성 기준:
+### `frontend/Hama/src/App.tsx`
 
-- 코드에서 import해서 사용하는 정적 리소스를 보관합니다.
-- 사용하지 않는 이미지 파일은 불필요하게 추가하지 않습니다.
-
-### `frontend/src/components`
-
-여러 페이지에서 재사용하는 공통 컴포넌트를 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `Header.jsx`: 상단 메뉴
-- `Footer.jsx`: 하단 영역
-- `ItemCard.jsx`: 상품 카드
-- `SearchBar.jsx`: 검색창
-- `Button.jsx`: 공통 버튼
-- `Modal.jsx`: 공통 모달
-
-작성 기준:
-
-- 특정 페이지에만 강하게 묶인 컴포넌트는 `pages` 내부에서 관리할 수 있습니다.
-- 여러 화면에서 재사용되면 `components`에 둡니다.
-
-### `frontend/src/hooks`
-
-React 커스텀 훅을 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `useAuth.js`: 로그인 상태, 토큰, 사용자 정보 관리
-- `useSearch.js`: 검색어, 검색 결과, 검색 상태 관리
-- `useWish.js`: 찜 상태 관리
-
-작성 기준:
-
-- 여러 컴포넌트에서 반복되는 상태 관리 로직을 분리합니다.
-- API 호출과 화면 상태가 함께 반복될 때 커스텀 훅으로 만들 수 있습니다.
-
-### `frontend/src/pages`
-
-라우팅 단위의 페이지 컴포넌트를 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `Main.jsx`: 메인 페이지
-- `SearchResult.jsx`: 검색 결과 페이지
-- `Detail.jsx`: 상품 상세 페이지
-- `MyPage.jsx`: 마이페이지
-- `Login.jsx`: 로그인 페이지
-- `Signup.jsx`: 회원가입 페이지
-
-작성 기준:
-
-- URL 경로와 직접 연결되는 화면을 배치합니다.
-- 공통 UI는 `components`에서 가져와 조합합니다.
-
-### `frontend/src/styles`
-
-전역 스타일과 Tailwind CSS 관련 스타일 파일을 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `tailwind.css`: Tailwind 기본 지시문
-- `global.css`: 전체 폰트, body, reset 스타일
-- `theme.css`: 색상, 간격 등 디자인 변수
-
-작성 기준:
-
-- 전역으로 적용되는 스타일만 둡니다.
-- 컴포넌트별 스타일은 컴포넌트 근처에서 관리할 수 있습니다.
-
-### `frontend/src/utils`
-
-순수 유틸리티 함수를 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `formatPrice.js`: 가격 표시 형식 변환
-- `formatDate.js`: 날짜 표시 형식 변환
-- `storage.js`: localStorage/sessionStorage 공통 함수
-- `validation.js`: 입력값 검증 함수
-
-작성 기준:
-
-- React 상태나 화면 렌더링에 직접 의존하지 않는 함수를 둡니다.
-- 여러 곳에서 재사용되는 작은 기능을 모읍니다.
-
-### `frontend/src/routes`
-
-React Router 라우팅 설정을 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `AppRouter.jsx`: 전체 페이지 라우팅
-- `ProtectedRoute.jsx`: 로그인 필요 페이지 접근 제어
-
-작성 기준:
-
-- 홈, 로그인, 회원가입, 검색 결과, 상세 페이지, 마이페이지 경로를 관리합니다.
-- 인증이 필요한 페이지는 보호 라우트로 분리합니다.
-
-### `frontend/src/layouts`
-
-여러 페이지가 공유하는 화면 레이아웃을 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `MainLayout.jsx`: Header, Footer, 공통 컨테이너 포함
-- `AuthLayout.jsx`: 로그인/회원가입 화면 전용 레이아웃
-
-작성 기준:
-
-- 페이지마다 반복되는 Header, Footer, 전체 여백 구조를 관리합니다.
-- 실제 페이지 내용은 `pages`에서 작성하고 레이아웃에 끼워 넣습니다.
-
-### `frontend/src/contexts`
-
-전역 상태를 관리하는 React Context를 작성합니다.
-
-들어갈 수 있는 파일 예시:
-
-- `AuthContext.jsx`: 로그인 사용자 정보, 토큰 상태
-- `NotificationContext.jsx`: 알림 목록과 읽음 상태
-- `SearchContext.jsx`: 최근 검색어, 검색 상태
-
-작성 기준:
-
-- 여러 페이지에서 함께 사용하는 상태를 관리합니다.
-- 단일 컴포넌트에서만 쓰는 상태는 Context로 올리지 않습니다.
-
-### `frontend/tailwind.config.js`
-
-Tailwind CSS 설정 파일입니다.
+React 앱의 최상위 컴포넌트입니다.
 
 들어갈 내용:
 
-- 프로젝트에서 사용할 파일 경로 설정
-- 커스텀 색상
-- 폰트 설정
-- spacing, borderRadius 등 디자인 시스템 설정
+- 홈 화면 전체 레이아웃 조합
+- 검색 패널 열림/닫힘 상태 관리
+- 선택된 카테고리 상태 관리
+- Header, SearchPanel, HeroBanner, CategoryGrid, ProductGrid, Footer 연결
 
-### `frontend/vite.config.js`
+작성 기준:
+
+- 화면이 커지면 상태와 레이아웃은 `App.tsx`에 두고, UI 조각은 `components`로 분리합니다.
+- 데이터는 컴포넌트 안에 직접 길게 두지 않고 `data/catalog.ts`에서 import합니다.
+- 카테고리와 상품 타입은 `types/catalog.ts`에서 관리합니다.
+
+### `frontend/Hama/src/components`
+
+홈 화면을 구성하는 React 컴포넌트를 작성합니다.
+
+현재 작성된 파일:
+
+- `Header.tsx`: 상단 로고와 메뉴 영역
+- `SearchPanel.tsx`: 검색 입력창과 최근 검색어 패널
+- `HeroBanner.tsx`: 홈 화면 배너 영역
+- `CategoryGrid.tsx`: 카테고리 선택 그리드
+- `ProductGrid.tsx`: 추천 상품 목록 그리드
+- `Footer.tsx`: 하단 정보 영역
+
+작성 기준:
+
+- 컴포넌트는 가능한 한 props로 필요한 데이터와 이벤트를 받습니다.
+- 여러 컴포넌트에서 공유하는 데이터 타입은 `types`에 둡니다.
+- 화면 표시용 데이터는 `data`에서 가져오고, 컴포넌트 내부에 중복 작성하지 않습니다.
+
+### `frontend/Hama/src/data`
+
+화면 표시용 임시 데이터를 관리합니다.
+
+현재 작성된 파일:
+
+- `catalog.ts`: 카테고리 목록, 추천 상품 목록, 최근 검색어 목록
+
+작성 기준:
+
+- 백엔드 API 연동 전까지 사용하는 목 데이터를 둡니다.
+- API 연동 후에는 이 데이터를 API 응답으로 대체하거나 fixture 용도로 분리합니다.
+
+### `frontend/Hama/src/types`
+
+프론트엔드 TypeScript 타입을 정의합니다.
+
+현재 작성된 파일:
+
+- `catalog.ts`: `Category`, `Product` 타입
+
+작성 기준:
+
+- 여러 컴포넌트에서 공유하는 타입을 둡니다.
+- API 응답 타입이 생기면 도메인별 타입 파일로 분리할 수 있습니다.
+
+### `frontend/Hama/public`
+
+정적 파일을 보관합니다.
+
+현재 작성된 파일:
+
+- `hamalogo.png`: 서비스 로고 이미지
+- `hama_lowban1.jpg`: 홈 배너 이미지
+- `favicon.svg`: 브라우저 파비콘
+- `icons.svg`: 아이콘 리소스
+
+작성 기준:
+
+- import 없이 public 경로로 참조할 정적 파일을 둡니다.
+- 컴포넌트에서 직접 import해야 하는 에셋 구조가 필요해지면 `src/assets`를 추가할 수 있습니다.
+
+### `frontend/Hama/package.json`
+
+프론트엔드 앱 의존성과 실행 스크립트를 관리합니다.
+
+현재 스크립트:
+
+- `npm run dev`: Vite 개발 서버 실행
+- `npm run build`: TypeScript 빌드 후 Vite 빌드
+- `npm run lint`: ESLint 검사
+- `npm run preview`: 빌드 결과 미리보기
+
+### `frontend/Hama/vite.config.ts`
 
 Vite 프로젝트 설정 파일입니다.
 
@@ -420,6 +441,10 @@ Vite 프로젝트 설정 파일입니다.
 
 프로젝트 문서와 데이터베이스 관련 자료를 보관합니다.
 
+### `docs/project_structure.md`
+
+프로젝트 폴더 구조, 폴더별 설명, 참고 문서 링크를 정리합니다.
+
 ### `docs/requirements.md`
 
 프로젝트 요구사항과 구조 가이드를 정리합니다.
@@ -432,6 +457,23 @@ Vite 프로젝트 설정 파일입니다.
 - 역할 분담
 - 화면별 기능 요구사항
 - API 요구사항
+
+### `docs/document_checklist.md`
+
+백엔드와 프론트엔드의 구현 파일 작성 상태와 누락된 파일을 확인하기 위한 체크리스트입니다.
+
+들어갈 내용:
+
+- 백엔드 Java 계층별 구현 파일 작성 여부
+- Python 크롤링/전처리 파일 작성 여부
+- 프론트엔드 Hama 앱의 컴포넌트, 데이터, 타입, API, 훅, 상태 관리 파일 작성 여부
+- 아직 구현되지 않은 프론트엔드 영역과 빈 백엔드 폴더 확인 항목
+
+작성 기준:
+
+- 구현 파일을 추가하거나 기능 코드를 작성할 때마다 체크 상태를 갱신합니다.
+- 새 구현 파일이 추가되면 체크리스트에도 항목을 추가합니다.
+- 기능 코드가 들어간 폴더의 `.gitkeep` 필요 여부를 함께 확인합니다.
 
 ### `docs/api_spec.md`
 

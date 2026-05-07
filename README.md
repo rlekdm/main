@@ -5,37 +5,6 @@ readme
 - notion : https://suave-kip-fd7.notion.site/KDT-350c2695cef080ec881ad5a86bdd8da8
 
 =======
-# 팀원 정보
-- **정지원**
-  - 역할
-      - 팀장
-      - Back-end & DB 설계
-        - 11개 테이블 아키텍처 설계 및 데이터 명세서(Data Dictionary) 표준화
-        - 사용자 검색 로그 기반 맞춤 상품 추천 알고리즘 및 가중치 로직 설계
-      - 깃 관리자
-        - GitHub 레포지토리 환경 구축 및 SQL 스크립트 형상 관리 총괄
-  - GIT URL: https://github.com/jiwon-jung323
-- **정우진**
-  - 역할
-      - 프로젝트 매니저
-      - Back-end
-        - 플랫폼별(번개장터, 중고나라 등) 데이터 수집 파이프라인 및 중복 매물 방지 로직 설계
-        - 시세 추적을 위한 일 단위 가격 데이터 수집 주기 및 저장 구조 최적화
-      - Front-end & UI/UX
-        - Vite 및 React 기반의 프로젝트 아키텍처 설계 및 최적화된 초기 구조 구축
-        - Tailwind CSS를 활용한 커스텀 디자인 시스템(컬러셋, 폰트, 그리드) 및 공통 컴포넌트
-        - KREAM/Apple 스타일의 미니멀한 UI 구현 및 고도화된 반응형 레이아웃 퍼블리싱
-  - GIT URL: https://github.com/rainstorm0907
-- **김다은**
-  - 역할
-      - 프론트엔드
-  - GIT URL: https://github.com/rlekdm
-- **이준호**
-  - 역할
-      - 백엔드
-  - GIT URL: https://github.com/dlwnsgh1130
-
-=======
 # 프로젝트 설명
 
 본 프로젝트는 중고거래 플랫폼의 상품 데이터를 수집하고, 사용자의 검색 이력과 찜 정보를 기반으로 상품 검색, 가격 비교, 최저가 알림, 맞춤 추천 기능을 제공하는 웹 서비스입니다.
@@ -58,81 +27,56 @@ readme
 ## 기술 구성
 
 - Backend: Java, Spring Boot
-- Frontend: Vite, React, Tailwind CSS
+- Frontend: Vite, React, TypeScript, CSS
 - Crawling/Preprocessing: Python
 - Database: PostgreSQL 또는 Supabase
-- Docs: DB 스키마, ERD, API 명세, 요구사항 문서
+- Docs: DB 스키마, ERD, API 명세, 요구사항 문서, 구현 파일 체크리스트
 
-## `code` 폴더 구조
+## 프로젝트 진행 일정
 
-```text
-code
-├── backend
-│   └── src/main
-│       ├── java/com/used/service
-│       │   ├── config
-│       │   ├── controller
-│       │   ├── service
-│       │   ├── repository
-│       │   ├── dto
-│       │   ├── entity
-│       │   ├── scheduler
-│       │   ├── notification
-│       │   ├── chatbot
-│       │   └── exception
-│       ├── python
-│       │   ├── crawling
-│       │   ├── preprocessing
-│       │   └── requirements.txt
-│       └── resources
-│           └── application.yml
-├── frontend
-│   ├── src
-│   │   ├── api
-│   │   ├── assets
-│   │   ├── components
-│   │   ├── hooks
-│   │   ├── pages
-│   │   ├── styles
-│   │   ├── utils
-│   │   ├── routes
-│   │   ├── layouts
-│   │   └── contexts
-│   ├── tailwind.config.js
-│   └── vite.config.js
-└── docs
-    ├── requirements.md
-    ├── api_spec.md
-    ├── db_schema.sql
-    ├── ERD.drawio.png
-    └── 데이터 명세서.xlsx
-```
+- 프로젝트 주제 선정: 완료, 2026/03/23 ~ 2026/03/27
+- 시장 조사 및 벤치마킹: 완료, 2026/03/30 ~ 2026/04/03
+- 요구사항 정의: 완료, 2026/04/06 ~ 2026/04/10
+- DB 설계: 완료, 2026/04/13 ~ 2026/04/23
+- 프로젝트 구현: 진행 중, 2026/04/16 ~ 미정
+- 배포 및 발표 준비: 시작안함, 일정 미정
 
-## 폴더별 설명
+## 프로젝트 문서
 
-- `code/backend`: Spring Boot 기반 백엔드 코드 영역입니다.
-- `code/backend/src/main/java/com/used/service/controller`: 사용자 요청을 받는 REST API 컨트롤러를 작성합니다.
-- `code/backend/src/main/java/com/used/service/service`: 회원, 상품, 찜, 추천, 검색 등 핵심 비즈니스 로직을 작성합니다.
-- `code/backend/src/main/java/com/used/service/repository`: DB 접근 코드를 작성합니다.
-- `code/backend/src/main/java/com/used/service/entity`: DB 테이블과 매핑되는 Entity 클래스를 작성합니다.
-- `code/backend/src/main/java/com/used/service/dto`: API 요청/응답 데이터 객체를 작성합니다.
-- `code/backend/src/main/java/com/used/service/scheduler`: 가격 갱신, 최저가 알림, 검색 순위 집계 같은 정기 작업을 작성합니다.
-- `code/backend/src/main/java/com/used/service/notification`: 알림 생성, 조회, 읽음 처리 로직을 작성합니다.
-- `code/backend/src/main/java/com/used/service/chatbot`: 챗봇 관련 API와 서비스 로직을 작성합니다.
-- `code/backend/src/main/python`: Python 크롤링 및 전처리 코드를 관리합니다.
-- `code/frontend`: Vite + React 기반 프론트엔드 코드 영역입니다.
-- `code/frontend/src/pages`: 홈, 로그인, 회원가입, 검색 결과, 상세, 마이페이지 등 페이지 단위 컴포넌트를 작성합니다.
-- `code/frontend/src/components`: Header, Footer, ItemCard, SearchBar 등 공통 컴포넌트를 작성합니다.
-- `code/frontend/src/api`: Axios 설정 및 백엔드 API 통신 모듈을 작성합니다.
-- `code/frontend/src/routes`: React Router 라우팅 설정을 작성합니다.
-- `code/frontend/src/layouts`: 공통 레이아웃을 작성합니다.
-- `code/frontend/src/contexts`: 로그인 상태, 알림 상태, 검색 상태 등 전역 상태를 관리합니다.
-- `code/docs`: 요구사항, API 명세, DB 스키마, ERD, 데이터 명세서를 보관합니다.
+- [프로젝트 폴더 구조](./docs/project_structure.md#프로젝트-폴더-구조)
+- [폴더별 설명](./docs/project_structure.md#폴더별-설명)
+- [참고 문서](./docs/project_structure.md#참고-문서)
 
-## 참고 문서
+## 팀원 정보
 
-- `code/docs/requirements.md`: 프로젝트 구조 및 파일 작성 가이드
-- `code/docs/api_spec.md`: API 명세서
-- `code/docs/db_schema.sql`: DB 테이블 생성 SQL
-- `code/docs/ERD.drawio.png`: ERD 이미지
-- `code/docs/데이터 명세서.xlsx`: 데이터 명세서
+- **정지원**
+  - 역할
+      - 팀장
+      - Back-end & DB 설계
+        - 11개 테이블 아키텍처 설계 및 데이터 명세서(Data Dictionary) 표준화
+        - 사용자 검색 로그 기반 맞춤 상품 추천 알고리즘 및 가중치 로직 설계
+      - 깃 관리자
+        - GitHub 레포지토리 환경 구축 및 SQL 스크립트 형상 관리 총괄
+  - GIT URL: https://github.com/jiwon-jung323
+- **정우진**
+  - 역할
+      - 프로젝트 매니저
+      - Back-end
+        - 플랫폼별(번개장터, 중고나라 등) 데이터 수집 파이프라인 및 중복 매물 방지 로직 설계
+        - 시세 추적을 위한 일 단위 가격 데이터 수집 주기 및 저장 구조 최적화
+      - Front-end & UI/UX
+        - Vite 및 React 기반의 프로젝트 아키텍처 설계 및 최적화된 초기 구조 구축
+        - CSS 기반 커스텀 디자인 시스템(컬러셋, 폰트, 그리드) 및 공통 컴포넌트
+        - KREAM/Apple 스타일의 미니멀한 UI 구현 및 고도화된 반응형 레이아웃 퍼블리싱
+  - GIT URL: https://github.com/rainstorm0907
+- **김다은**
+  - 역할
+      - 프론트엔드
+        - Hama 프론트엔드 Vite 앱 구조 구성
+        - 홈 화면 컴포넌트(`Header`, `HeroBanner`, `SearchPanel`, `CategoryGrid`, `ProductGrid`, `Footer`) 구현
+        - 카테고리/상품 더미 데이터와 타입 정의 분리
+  - GIT URL: https://github.com/rlekdm
+- **이준호**
+  - 역할
+      - 백엔드
+  - GIT URL: https://github.com/dlwnsgh1130
