@@ -57,6 +57,7 @@ kdtproject
     ├── project_structure.md
     ├── requirements.md
     ├── document_checklist.md
+    ├── search_relevance_plan.md
     ├── api_spec.md
     ├── db_schema.sql
     ├── ERD.drawio.png
@@ -88,6 +89,7 @@ kdtproject
 - [프로젝트 구조 문서](./project_structure.md): 프로젝트 폴더 구조, 폴더별 설명, 참고 문서 링크
 - [프로젝트 구조 및 파일 작성 가이드](./requirements.md): 프로젝트 구조 및 파일 작성 가이드
 - [구현 파일 작성 체크리스트](./document_checklist.md): 백엔드/프론트엔드 구현 파일 작성 상태 체크리스트
+- [검색 결과 정합성 판별 모델 진행 계획](./search_relevance_plan.md): 크롤링 결과 정합성 판별 모델의 현재 진행 상황과 다음 작업 계획
 - [API 명세서](./api_spec.md): API 명세서
 - [DB 테이블 생성 SQL](./db_schema.sql): DB 테이블 생성 SQL
 - [ERD 이미지](./ERD.drawio.png): ERD 이미지

@@ -11,21 +11,24 @@ CREATE TABLE Users (
 -- [2. 플랫폼 및 매물 정보]
 CREATE TABLE Platforms (
     platform_id     NUMBER PRIMARY KEY,
-    platform_name   VARCHAR2(50) NOT NULL
+    platform_name   VARCHAR2(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE Items (
     item_id         NUMBER PRIMARY KEY,
-    platform_id     NUMBER,
+    platform_id     NUMBER NOT NULL,
     original_id     VARCHAR2(100) NOT NULL,
+    canonical_name  VARCHAR2(200) NOT NULL, -- 표준 상품명, 가격 집계 기준
     title           VARCHAR2(300) NOT NULL,
     current_price   NUMBER NOT NULL,
     lowest_price    NUMBER, -- 역대 최저가 저장용
     category_name   VARCHAR2(100), -- 카테고리 분류용
+    matched_keywords VARCHAR2(500), -- 크롤링 시 매칭된 키워드 목록
     thumbnail_url   VARCHAR2(500),
     item_url        VARCHAR2(500) NOT NULL,
     crawled_at      TIMESTAMP DEFAULT SYSDATE,
-    CONSTRAINT fk_items_platform FOREIGN KEY (platform_id) REFERENCES Platforms(platform_id)
+    CONSTRAINT fk_items_platform FOREIGN KEY (platform_id) REFERENCES Platforms(platform_id),
+    CONSTRAINT uq_items_platform_original UNIQUE (platform_id, original_id)
 );
 
 -- [3. 시세 그래프 및 알림용 이력]
