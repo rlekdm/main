@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { ChevronLeft, ChevronRight, Clock, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -32,12 +32,8 @@ export function SearchBar({
 }: SearchBarProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState(initialQuery);
-  const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+  const [recentKeywords, setRecentKeywords] = useState(() => getRecentSearches());
   const [popularStartIndex, setPopularStartIndex] = useState(0);
-
-  useEffect(() => {
-    setRecentKeywords(getRecentSearches());
-  }, []);
 
   const runSearch = (nextQuery: string) => {
     const trimmedQuery = nextQuery.trim();

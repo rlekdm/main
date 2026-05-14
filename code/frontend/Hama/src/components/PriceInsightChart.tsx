@@ -1,5 +1,5 @@
-import { useId, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useId, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { PricePoint } from '../types/product';
 import { hairline } from '../styles/hairline';
 import { formatWon } from '../utils/format';
@@ -14,13 +14,41 @@ type ChartPoint = PricePoint & {
   y: number;
 };
 
+type LabelBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type PointLabelPlacement = LabelBox & {
+  anchor: 'start' | 'middle' | 'end';
+  baselineY: number;
+  textX: number;
+};
+
+type AverageLabelPlacement = LabelBox & {
+  lineGapStart: number;
+  lineGapEnd: number;
+  textX: number;
+  textY: number;
+};
+
+type PriceRangeId = '3m' | '1m' | '1w';
+
+const priceRangeOptions: Array<{ id: PriceRangeId; label: string; take: number | null }> = [
+  { id: '3m', label: '3달', take: null },
+  { id: '1m', label: '1달', take: 6 },
+  { id: '1w', label: '1주', take: 4 },
+];
+
 const chartWidth = 720;
 const chartHeight = 318;
 const chartPadding = {
-  top: 46,
-  right: 42,
-  bottom: 38,
-  left: 38,
+  top: 64,
+  right: 56,
+  bottom: 44,
+  left: 48,
 };
 const chartLeft = chartPadding.left;
 const chartRight = chartWidth - chartPadding.right;
@@ -35,12 +63,17 @@ export function PriceInsightChart({
 }: PriceInsightChartProps) {
   const chartInstanceId = useId().replace(/:/g, '');
   const fillId = `${chartInstanceId}-price-fill`;
-  const keywords = keywordOptions.length > 0 ? keywordOptions.slice(0, 5) : ['현재 상품'];
+  const keywords = keywordOptions.length > 0 ? keywordOptions.slice(0, 6) : ['현재 상품'];
   const [activeKeywordIndex, setActiveKeywordIndex] = useState(0);
+  const [activeRange, setActiveRange] = useState<PriceRangeId>('3m');
+  const [isKeywordMenuOpen, setIsKeywordMenuOpen] = useState(false);
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
   const activeKeyword = keywords[activeKeywordIndex] ?? keywords[0];
-  const activePoints = useMemo(
-    () => createKeywordPoints(points, activeKeyword),
-    [activeKeyword, points]
+  const activePoints = createKeywordPoints(
+    createRangePoints(points, activeRange),
+    activeKeyword,
+    activeRange
   );
 
   if (activePoints.length === 0) {
@@ -83,15 +116,41 @@ export function PriceInsightChart({
   const path = buildSmoothPath(coordinates);
   const areaPath = `${path} L ${latest.x} ${chartBottom} L ${chartLeft} ${chartBottom} Z`;
   const canMoveKeyword = keywords.length > 1;
+  const activePointIndex = hoveredPointIndex ?? selectedPointIndex;
+  const activeTooltipPoint =
+    activePointIndex === null ? null : coordinates[activePointIndex] ?? null;
+  const maxLabelText = `최고 ${formatWon(maxPrice)}`;
+  const minLabelText = `최저 ${formatWon(minPrice)}`;
+  const averageLabelText = `기간 평균 ${formatWon(averagePrice)}`;
+  const maxLabelPosition = getPointLabelPlacement({
+    point: maxPoint,
+    text: maxLabelText,
+    preferredPlacement: 'above',
+    occupiedBoxes: [],
+  });
+  const minLabelPosition = getPointLabelPlacement({
+    point: minPoint,
+    text: minLabelText,
+    preferredPlacement: 'below',
+    occupiedBoxes: [maxLabelPosition],
+  });
+  const averageLabelPosition = getAverageLabelPlacement({
+    averageY,
+    text: averageLabelText,
+    occupiedBoxes: [maxLabelPosition, minLabelPosition],
+  });
 
-  const moveKeyword = (direction: -1 | 1) => {
-    setActiveKeywordIndex((current) => {
-      if (!canMoveKeyword) {
-        return current;
-      }
+  const selectKeyword = (index: number) => {
+    setActiveKeywordIndex(index);
+    setHoveredPointIndex(null);
+    setSelectedPointIndex(null);
+    setIsKeywordMenuOpen(false);
+  };
 
-      return (current + direction + keywords.length) % keywords.length;
-    });
+  const selectRange = (rangeId: PriceRangeId) => {
+    setActiveRange(rangeId);
+    setHoveredPointIndex(null);
+    setSelectedPointIndex(null);
   };
 
   return (
@@ -99,42 +158,82 @@ export function PriceInsightChart({
       <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-blue-100/40 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 left-8 h-52 w-52 rounded-full bg-emerald-100/34 blur-3xl" />
 
-      <div className="relative z-10 flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="relative z-30 flex flex-wrap items-center justify-between gap-2">
+        <div className="relative flex min-w-0 items-center">
           <button
             type="button"
-            onClick={() => moveKeyword(-1)}
+            onClick={() => setIsKeywordMenuOpen((current) => !current)}
             disabled={!canMoveKeyword}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition disabled:opacity-35 ${hairline.control} ${hairline.controlHover} ${hairline.focus}`}
-            aria-label="이전 키워드"
+            className={`inline-flex min-h-10 min-w-[120px] max-w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition disabled:cursor-default ${hairline.controlActive} ${hairline.focus}`}
+            aria-expanded={isKeywordMenuOpen}
+            aria-haspopup="menu"
+            aria-label="가격 그래프 키워드 선택"
           >
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            <span className="truncate">{activeKeyword}</span>
+            {canMoveKeyword ? (
+              <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+            ) : null}
           </button>
-          <button
-            type="button"
-            onClick={() => moveKeyword(1)}
-            className={`inline-flex min-h-10 min-w-[116px] items-center justify-center gap-2 rounded-full px-4 text-sm font-black transition ${hairline.controlActive} ${hairline.focus}`}
-            aria-label="다음 관련 키워드 보기"
-          >
-            {activeKeyword}
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <div className="flex max-w-full gap-1.5 overflow-x-auto py-1">
-            {keywords
-              .filter((keyword) => keyword !== activeKeyword)
-              .slice(0, 3)
-              .map((keyword, index) => (
-                <button
-                  key={keyword}
-                  type="button"
-                  onClick={() => setActiveKeywordIndex(keywords.indexOf(keyword))}
-                  className={`h-8 shrink-0 rounded-full border border-[#D8E0EA] bg-white/54 px-3 text-[11px] font-black text-[#8A94A5] transition hover:border-[#AEB8C8] hover:text-[#111827] ${hairline.focus}`}
-                >
-                  {index === 0 ? '다음 ' : ''}
-                  {keyword}
-                </button>
-              ))}
-          </div>
+
+          {isKeywordMenuOpen ? (
+            <div
+              role="menu"
+              className="absolute left-0 top-12 z-40 grid min-w-[180px] gap-1 rounded-2xl border border-[#C9CFDA] bg-white/96 p-1.5 shadow-[0_18px_44px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.96)] backdrop-blur-md"
+            >
+              {keywords.map((keyword, index) => {
+                const isActive = index === activeKeywordIndex;
+
+                return (
+                  <button
+                    key={`${keyword}-${index}`}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => selectKeyword(index)}
+                    className={`flex min-h-9 items-center justify-between gap-3 rounded-xl border px-3 text-left text-sm font-black transition ${hairline.focus} ${
+                      isActive
+                        ? 'border-[#111827] bg-white text-[#111827]'
+                        : 'border-transparent bg-white text-[#4B5563] hover:border-[#C9CFDA] hover:bg-[#F7F9FC] hover:text-[#111827]'
+                    }`}
+                  >
+                    <span className="truncate">{keyword}</span>
+                    {isActive ? (
+                      <span
+                        aria-hidden="true"
+                        className="rounded-full border border-[#C9CFDA] px-2 py-0.5 text-[10px] font-black text-[#6B7280]"
+                      >
+                        선택
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          className="flex items-center gap-1.5 rounded-full border border-[#D7DEE9] bg-white/76 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.96)]"
+          aria-label="가격 그래프 기간 선택"
+        >
+          {priceRangeOptions.map((option) => {
+            const isActive = option.id === activeRange;
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => selectRange(option.id)}
+                className={`h-8 min-w-12 rounded-full border px-3 text-[12px] font-black transition ${hairline.focus} ${
+                  isActive
+                    ? 'border-[#111827] bg-white text-[#111827] shadow-[inset_0_0_0_1px_rgba(17,24,39,0.5)]'
+                    : 'border-transparent bg-transparent text-[#7B8494] hover:border-[#C9CFDA] hover:bg-white hover:text-[#111827]'
+                }`}
+                aria-pressed={isActive}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -174,6 +273,17 @@ export function PriceInsightChart({
 
             <line
               x1={chartLeft}
+              x2={averageLabelPosition.lineGapStart}
+              y1={averageY}
+              y2={averageY}
+              stroke="#7D8796"
+              strokeDasharray="8 10"
+              strokeLinecap="round"
+              strokeWidth="1.4"
+              opacity="0.44"
+            />
+            <line
+              x1={averageLabelPosition.lineGapEnd}
               x2={chartRight}
               y1={averageY}
               y2={averageY}
@@ -183,16 +293,10 @@ export function PriceInsightChart({
               strokeWidth="1.4"
               opacity="0.44"
             />
-            <text
-              x={chartRight - 4}
-              y={averageY - 10}
-              fill="#7B8494"
-              fontSize="12"
-              fontWeight="900"
-              textAnchor="end"
-            >
-              기간 평균 {formatWon(averagePrice)}
-            </text>
+            <AverageLabel
+              placement={averageLabelPosition}
+              text={averageLabelText}
+            />
 
             <path d={areaPath} fill={`url(#${fillId})`} />
             <path
@@ -204,17 +308,51 @@ export function PriceInsightChart({
               strokeWidth="6.5"
             />
 
-            {coordinates.map((point, index) => (
-              <circle
-                key={`${point.label}-${index}`}
-                cx={point.x}
-                cy={point.y}
-                r={index === coordinates.length - 1 ? 6.8 : 5}
-                fill="#FFFFFF"
-                stroke="#2563EB"
-                strokeWidth="3.2"
-              />
-            ))}
+            {coordinates.map((point, index) => {
+              const isActive = index === activePointIndex;
+
+              return (
+                <g
+                  key={`${point.label}-${index}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${point.label} 가격 ${formatWon(point.price)}`}
+                  onMouseEnter={() => setHoveredPointIndex(index)}
+                  onMouseLeave={() => setHoveredPointIndex(null)}
+                  onFocus={() => setHoveredPointIndex(index)}
+                  onBlur={() => setHoveredPointIndex(null)}
+                  onClick={() =>
+                    setSelectedPointIndex((current) =>
+                      current === index ? null : index
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedPointIndex((current) =>
+                        current === index ? null : index
+                      );
+                    }
+                  }}
+                  className="cursor-pointer outline-none"
+                >
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r="15"
+                    fill="transparent"
+                  />
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r={isActive ? 8.2 : index === coordinates.length - 1 ? 6.8 : 5}
+                    fill="#FFFFFF"
+                    stroke={isActive ? '#111827' : '#2563EB'}
+                    strokeWidth={isActive ? 3.8 : 3.2}
+                  />
+                </g>
+              );
+            })}
 
             <circle
               cx={minPoint.x}
@@ -223,6 +361,7 @@ export function PriceInsightChart({
               fill="#10B981"
               stroke="#FFFFFF"
               strokeWidth="4"
+              pointerEvents="none"
             />
             <circle
               cx={maxPoint.x}
@@ -231,6 +370,7 @@ export function PriceInsightChart({
               fill="#EF4444"
               stroke="#FFFFFF"
               strokeWidth="4"
+              pointerEvents="none"
             />
 
             <line
@@ -250,22 +390,26 @@ export function PriceInsightChart({
               fill="#22C55E"
               stroke="#FFFFFF"
               strokeWidth="4.5"
+              pointerEvents="none"
             />
 
             <PointLabel
-              x={clamp(maxPoint.x - 24, chartLeft, chartRight - 150)}
-              y={clamp(maxPoint.y - 18, chartTop + 4, chartBottom - 26)}
-              label="최고가"
-              value={formatWon(maxPrice)}
+              placement={maxLabelPosition}
+              text={maxLabelText}
               color="#EF4444"
             />
             <PointLabel
-              x={clamp(minPoint.x - 24, chartLeft, chartRight - 150)}
-              y={clamp(minPoint.y + 26, chartTop + 14, chartBottom - 16)}
-              label="최저가"
-              value={formatWon(minPrice)}
+              placement={minLabelPosition}
+              text={minLabelText}
               color="#059669"
             />
+
+            {activeTooltipPoint ? (
+              <PricePointTooltip
+                point={activeTooltipPoint}
+                value={formatWon(activeTooltipPoint.price)}
+              />
+            ) : null}
           </svg>
         </div>
       </div>
@@ -277,11 +421,24 @@ function priceToY(price: number, upper: number, lower: number) {
   return chartTop + ((upper - price) / Math.max(upper - lower, 1)) * chartInnerHeight;
 }
 
-function createKeywordPoints(points: PricePoint[], keyword: string) {
-  const keywordShift = deterministicRatio(keyword) * 0.08 - 0.04;
+function createRangePoints(points: PricePoint[], rangeId: PriceRangeId) {
+  const rangeOption =
+    priceRangeOptions.find((option) => option.id === rangeId) ?? priceRangeOptions[0];
+
+  // TODO(BE): 기간별 가격 히스토리 API가 들어오면 이 임시 slice를 제거하고 서버가 준 points를 그대로 사용합니다.
+  return rangeOption.take ? points.slice(-rangeOption.take) : points;
+}
+
+function createKeywordPoints(
+  points: PricePoint[],
+  keyword: string,
+  rangeId: PriceRangeId
+) {
+  // TODO(BE): 키워드별 가격 히스토리 API가 들어오면 이 임시 변형을 제거하고 서버 데이터를 그대로 사용합니다.
+  const keywordShift = deterministicRatio(`${keyword}-${rangeId}`) * 0.08 - 0.04;
 
   return points.map((point, index) => {
-    const wave = Math.sin(index + keyword.length) * 0.018;
+    const wave = Math.sin(index + keyword.length + rangeId.length) * 0.018;
     const nextPrice = point.price * (1 + keywordShift + wave);
 
     return {
@@ -311,35 +468,252 @@ function buildSmoothPath(points: ChartPoint[]) {
 }
 
 function PointLabel({
-  x,
-  y,
-  label,
-  value,
+  placement,
+  text,
   color,
 }: {
-  x: number;
-  y: number;
-  label: string;
-  value: string;
+  placement: PointLabelPlacement;
+  text: string;
   color: string;
 }) {
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <g transform={`translate(${placement.textX}, ${placement.baselineY})`}>
       <text
         x="0"
         y="0"
         fill={color}
-        fontSize="12.5"
+        fontSize="11.5"
         fontWeight="950"
+        textAnchor={placement.anchor}
         paintOrder="stroke"
         stroke="#FFFFFF"
-        strokeWidth="5"
+        strokeWidth="4"
         strokeLinejoin="round"
       >
-        {label} {value}
+        {text}
       </text>
     </g>
   );
+}
+
+function AverageLabel({
+  placement,
+  text,
+}: {
+  placement: AverageLabelPlacement;
+  text: string;
+}) {
+  return (
+    <g transform={`translate(${placement.x}, ${placement.y})`}>
+      <rect
+        width={placement.width}
+        height={placement.height}
+        rx="11"
+        fill="rgba(255,255,255,0.86)"
+        stroke="#D7DEE9"
+        strokeWidth="1"
+      />
+      <text
+        x={placement.textX}
+        y={placement.textY}
+        fill="#667085"
+        fontSize="10.5"
+        fontWeight="900"
+      >
+        {text}
+      </text>
+    </g>
+  );
+}
+
+function PricePointTooltip({
+  point,
+  value,
+}: {
+  point: ChartPoint;
+  value: string;
+}) {
+  const width = Math.max(116, `${point.label} ${value}`.length * 7.4);
+  const height = 48;
+  const x = clamp(point.x - width / 2, chartLeft, chartRight - width);
+  const shouldPlaceAbove = point.y > chartTop + height + 24;
+  const y = shouldPlaceAbove ? point.y - height - 18 : point.y + 18;
+  const markerY = shouldPlaceAbove ? y + height : y;
+
+  return (
+    <g pointerEvents="none">
+      <line
+        x1={point.x}
+        x2={point.x}
+        y1={point.y}
+        y2={markerY}
+        stroke="#111827"
+        strokeDasharray="3 5"
+        strokeLinecap="round"
+        strokeWidth="1.2"
+        opacity="0.34"
+      />
+      <g transform={`translate(${x}, ${y})`}>
+        <rect
+          width={width}
+          height={height}
+          rx="16"
+          fill="#111827"
+          opacity="0.96"
+        />
+        <text x="14" y="19" fill="#D1D5DB" fontSize="10.5" fontWeight="800">
+          {point.label}
+        </text>
+        <text x="14" y="36" fill="#FFFFFF" fontSize="14" fontWeight="950">
+          {value}
+        </text>
+      </g>
+    </g>
+  );
+}
+
+function getPointLabelPlacement({
+  point,
+  text,
+  preferredPlacement,
+  occupiedBoxes,
+}: {
+  point: ChartPoint;
+  text: string;
+  preferredPlacement: 'above' | 'below';
+  occupiedBoxes: LabelBox[];
+}) {
+  const width = Math.max(70, text.length * 6.9);
+  const height = 18;
+  const preferredY = preferredPlacement === 'above' ? point.y - 28 : point.y + 14;
+  const fallbackY = preferredPlacement === 'above' ? point.y + 18 : point.y - 28;
+  const candidatePositions = [
+    { x: point.x + 16, y: preferredY, anchor: 'start' as const, priority: 0 },
+    { x: point.x - 16, y: preferredY, anchor: 'end' as const, priority: 1 },
+    { x: point.x, y: preferredY, anchor: 'middle' as const, priority: 2 },
+    { x: point.x + 16, y: fallbackY, anchor: 'start' as const, priority: 3 },
+    { x: point.x - 16, y: fallbackY, anchor: 'end' as const, priority: 4 },
+    { x: point.x, y: fallbackY, anchor: 'middle' as const, priority: 5 },
+  ];
+
+  const candidates = candidatePositions.map((candidate) => {
+    const x = getAnchoredLabelX(candidate.x, width, candidate.anchor);
+    const y = clamp(candidate.y, chartTop + 2, chartBottom - height);
+    const box = {
+      x,
+      y,
+      width,
+      height,
+      anchor: candidate.anchor,
+      baselineY: y + 13,
+      textX:
+        candidate.anchor === 'start'
+          ? x
+          : candidate.anchor === 'end'
+            ? x + width
+            : x + width / 2,
+    };
+
+    return {
+      ...box,
+      score:
+        candidate.priority * 10 +
+        occupiedBoxes.reduce(
+          (total, occupiedBox) => total + getOverlapArea(box, occupiedBox) * 4,
+          0
+        ) +
+        getBoundsPenalty(box),
+    };
+  });
+
+  return candidates.reduce((best, candidate) =>
+    candidate.score < best.score ? candidate : best
+  );
+}
+
+function getAverageLabelPlacement({
+  averageY,
+  text,
+  occupiedBoxes,
+}: {
+  averageY: number;
+  text: string;
+  occupiedBoxes: LabelBox[];
+}): AverageLabelPlacement {
+  const width = Math.max(116, text.length * 6.3);
+  const height = 22;
+  const candidatePositions = [
+    { x: chartLeft + 8, y: averageY - height - 18, priority: 0 },
+    { x: chartRight - width - 8, y: averageY - height - 18, priority: 1 },
+    { x: chartLeft + 8, y: averageY + 18, priority: 2 },
+    { x: chartRight - width - 8, y: averageY + 18, priority: 3 },
+    { x: chartLeft + 8, y: chartTop + 8, priority: 4 },
+    { x: chartRight - width - 8, y: chartTop + 8, priority: 5 },
+  ];
+
+  const candidates = candidatePositions.map((candidate) => {
+    const x = clamp(candidate.x, chartLeft, chartRight - width);
+    const y = clamp(candidate.y, chartTop + 2, chartBottom - height);
+    const box = { x, y, width, height };
+
+    return {
+      ...box,
+      lineGapStart: Math.max(chartLeft, x - 10),
+      lineGapEnd: Math.min(chartRight, x + width + 10),
+      textX: 11,
+      textY: 15,
+      score:
+        candidate.priority * 12 +
+        occupiedBoxes.reduce(
+          (total, occupiedBox) => total + getOverlapArea(box, occupiedBox) * 6,
+          0
+        ) +
+        getBoundsPenalty(box),
+    };
+  });
+
+  return candidates.reduce((best, candidate) =>
+    candidate.score < best.score ? candidate : best
+  );
+}
+
+function getAnchoredLabelX(
+  preferredX: number,
+  width: number,
+  anchor: PointLabelPlacement['anchor']
+) {
+  const rawX =
+    anchor === 'start'
+      ? preferredX
+      : anchor === 'end'
+        ? preferredX - width
+        : preferredX - width / 2;
+
+  return clamp(rawX, chartLeft + 2, chartRight - width - 2);
+}
+
+function getOverlapArea(firstBox: LabelBox, secondBox: LabelBox) {
+  const xOverlap = Math.max(
+    0,
+    Math.min(firstBox.x + firstBox.width, secondBox.x + secondBox.width) -
+      Math.max(firstBox.x, secondBox.x)
+  );
+  const yOverlap = Math.max(
+    0,
+    Math.min(firstBox.y + firstBox.height, secondBox.y + secondBox.height) -
+      Math.max(firstBox.y, secondBox.y)
+  );
+
+  return xOverlap * yOverlap;
+}
+
+function getBoundsPenalty(box: LabelBox) {
+  const leftPenalty = Math.max(0, chartLeft - box.x);
+  const rightPenalty = Math.max(0, box.x + box.width - chartRight);
+  const topPenalty = Math.max(0, chartTop - box.y);
+  const bottomPenalty = Math.max(0, box.y + box.height - chartBottom);
+
+  return (leftPenalty + rightPenalty + topPenalty + bottomPenalty) * 20;
 }
 
 function deterministicRatio(seed: string) {

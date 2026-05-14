@@ -21,6 +21,16 @@ type ProductDetailModalProps = {
   onClose: () => void;
 };
 
+type DetailProductState = {
+  productKey: string;
+  product: Product | null;
+};
+
+type ImageSelectionState = {
+  productKey: string;
+  index: number;
+};
+
 // 목록은 가볍게 받고, 상세 본문은 팝업을 열 때 1회 조회합니다.
 // TODO(BE): DB 기반 상세 API가 생기면 현재 endpoint 내부의 외부 페이지 조회를 제거합니다.
 export function ProductDetailModal({
@@ -29,9 +39,16 @@ export function ProductDetailModal({
 }: ProductDetailModalProps) {
   const titleId = useId();
   const navigate = useNavigate();
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const productKey = getProductKey(product);
+  const [imageSelection, setImageSelection] = useState<ImageSelectionState>({
+    productKey: '',
+    index: 0,
+  });
+  const [detailProductState, setDetailProductState] =
+    useState<DetailProductState>({
+      productKey: '',
+      product: null,
+    });
   const [isWished, setIsWished] = useState(false);
   const [isAlertEnabled, setIsAlertEnabled] = useState(false);
   const [activeToast, setActiveToast] = useState<'wish' | 'alert' | null>(null);
@@ -71,44 +88,51 @@ export function ProductDetailModal({
   }, [activeToast]);
 
   useEffect(() => {
-    setActiveImageIndex(0);
-    setDetailProduct(product);
-
     if (!product) {
-      setIsDetailLoading(false);
       return;
     }
 
     const controller = new AbortController();
-    setIsDetailLoading(true);
 
     fetchProductDetail({
       platform: product.platform,
       pid: product.pid,
       signal: controller.signal,
     })
-      .then((productDetail) => setDetailProduct(productDetail))
+      .then((productDetail) => {
+        setDetailProductState({
+          productKey,
+          product: productDetail,
+        });
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsDetailLoading(false);
-        }
+
+        setDetailProductState({
+          productKey,
+          product: null,
+        });
       });
 
     return () => controller.abort();
-  }, [product]);
+  }, [product, productKey]);
 
   if (!product) {
     return null;
   }
 
-  const visibleProduct = detailProduct ?? product;
+  const matchedDetailProduct =
+    detailProductState.productKey === productKey ? detailProductState.product : null;
+  const visibleProduct = matchedDetailProduct ?? product;
+  const isDetailLoading = detailProductState.productKey !== productKey;
   const hasMultipleImages = visibleProduct.images.length > 1;
   const latestImageIndex = visibleProduct.images.length - 1;
+  const activeImageIndex = Math.min(
+    imageSelection.productKey === productKey ? imageSelection.index : 0,
+    Math.max(latestImageIndex, 0)
+  );
   const activeImageUrl = resolveImageUrl(
     visibleProduct.images[activeImageIndex] ?? visibleProduct.imageUrl
   );
@@ -131,12 +155,29 @@ export function ProductDetailModal({
   const insightKeywords = buildInsightKeywords(visibleProduct);
 
   const moveImage = (direction: 'prev' | 'next') => {
-    setActiveImageIndex((current) => {
-      if (direction === 'prev') {
-        return current === 0 ? latestImageIndex : current - 1;
-      }
+    setImageSelection((currentSelection) => {
+      const current =
+        currentSelection.productKey === productKey ? activeImageIndex : 0;
+      const nextIndex =
+        direction === 'prev'
+          ? current === 0
+            ? latestImageIndex
+            : current - 1
+          : current === latestImageIndex
+            ? 0
+            : current + 1;
 
-      return current === latestImageIndex ? 0 : current + 1;
+      return {
+        productKey,
+        index: nextIndex,
+      };
+    });
+  };
+
+  const selectImage = (index: number) => {
+    setImageSelection({
+      productKey,
+      index,
     });
   };
 
@@ -259,7 +300,7 @@ export function ProductDetailModal({
                   type="button"
                   key={`${imageId}-${index}`}
                   aria-label={`${index + 1}번 상품 이미지 보기`}
-                  onClick={() => setActiveImageIndex(index)}
+                  onClick={() => selectImage(index)}
                   className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-[#F5F5F7] transition focus:outline-none focus:ring-2 focus:ring-black ${
                     index === activeImageIndex
                       ? 'border-black shadow-sm'
@@ -441,6 +482,10 @@ function buildInsightKeywords(product: Product) {
   ];
 
   return Array.from(new Set(keywords.filter(Boolean))).slice(0, 4);
+}
+
+function getProductKey(product: Product | null): string {
+  return product ? `${product.platform}:${product.pid}` : '';
 }
 
 function resolveImageUrl(value: string | null | undefined): string | null {
